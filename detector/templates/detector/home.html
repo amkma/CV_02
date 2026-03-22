@@ -50,11 +50,20 @@
         <!-- Task 2: Snake -->
         <section class="panel-section">
             <h3 class="section-title">Active Contour (Snake)</h3>
+
+            <!-- Draw mode buttons -->
+            <div class="draw-controls">
+                <button id="btn-draw" class="draw-btn" disabled>✏️ Draw Contour</button>
+                <button id="btn-clear" class="draw-btn clear-btn" disabled>✕ Clear</button>
+            </div>
+            <p id="draw-hint" class="draw-hint" hidden>Hold mouse button and sketch around the object. Release to finish.</p>
+            <p id="draw-count" class="draw-count" hidden>Points: <span id="point-count">0</span></p>
+
             <div class="slider-group" id="snake-controls">
-                <div class="ctrl" data-key="center_x"><label>Center X</label><input type="range" min="0" max="2000" step="1" value="200"><span class="val">200</span></div>
-                <div class="ctrl" data-key="center_y"><label>Center Y</label><input type="range" min="0" max="2000" step="1" value="200"><span class="val">200</span></div>
-                <div class="ctrl" data-key="radius"><label>Init radius</label><input type="range" min="1" max="500" step="1" value="100"><span class="val">100</span></div>
-                <div class="ctrl" data-key="num_points"><label>Points</label><input type="range" min="8" max="200" step="1" value="60"><span class="val">60</span></div>
+                <div class="ctrl circle-ctrl" data-key="center_x"><label>Center X</label><input type="range" min="0" max="2000" step="1" value="200"><span class="val">200</span></div>
+                <div class="ctrl circle-ctrl" data-key="center_y"><label>Center Y</label><input type="range" min="0" max="2000" step="1" value="200"><span class="val">200</span></div>
+                <div class="ctrl circle-ctrl" data-key="radius"><label>Init radius</label><input type="range" min="1" max="500" step="1" value="100"><span class="val">100</span></div>
+                <div class="ctrl circle-ctrl" data-key="num_points"><label>Points</label><input type="range" min="8" max="200" step="1" value="60"><span class="val">60</span></div>
                 <div class="ctrl" data-key="alpha"><label>α continuity</label><input type="range" min="0" max="10" step="0.1" value="1"><span class="val">1.0</span></div>
                 <div class="ctrl" data-key="beta"><label>β curvature</label><input type="range" min="0" max="10" step="0.1" value="1"><span class="val">1.0</span></div>
                 <div class="ctrl" data-key="gamma"><label>γ image</label><input type="range" min="0" max="10" step="0.1" value="1.5"><span class="val">1.5</span></div>
@@ -97,7 +106,11 @@
             <h2>Active Contour (Snake)</h2>
             <div id="snake-stats" class="stats"></div>
             <div class="result-grid two-col">
-                <figure><img id="img-snake-orig" src="" alt="Original"><figcaption>Original</figcaption></figure>
+                <figure class="draw-target">
+                    <img id="img-snake-orig" src="" alt="Original">
+                    <canvas id="draw-canvas" class="draw-canvas"></canvas>
+                    <figcaption>Original (draw here)</figcaption>
+                </figure>
                 <figure><img id="img-contour" src="" alt="Contour"><figcaption>Snake Contour</figcaption></figure>
             </div>
             <div id="chain-code-box" class="chain-code-section" hidden>

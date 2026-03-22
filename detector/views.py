@@ -2,6 +2,7 @@
 
 import os
 import uuid
+import json
 
 from django.conf import settings
 from django.http import JsonResponse
@@ -10,17 +11,18 @@ from django.views.decorators.csrf import csrf_exempt
 
 # ── Make sure OpenCV DLLs are findable ──
 _opencv_candidates = [
-    r"C:\opencv\build\x64\vc16\bin",
+    r"C:\Program Files\opencv\build\bin",
     r"C:\Program Files\opencv\build\x64\vc16\bin",
-    r"C:\opencv\build\x64\vc17\bin",
     r"C:\Program Files\opencv\build\x64\vc17\bin",
+    r"C:\opencv\build\bin",
+    r"C:\opencv\build\x64\vc16\bin",
+    r"C:\opencv\build\x64\vc17\bin",
 ]
 for _opencv_bin in _opencv_candidates:
     if os.path.isdir(_opencv_bin):
         os.add_dll_directory(_opencv_bin)
         if _opencv_bin not in os.environ.get("PATH", ""):
             os.environ["PATH"] = _opencv_bin + ";" + os.environ.get("PATH", "")
-        break
 
 import cv_core
 
@@ -123,18 +125,34 @@ def api_snake(request):
     os.makedirs(results_dir, exist_ok=True)
     out_path = os.path.join(results_dir, f"{uuid.uuid4().hex}_snake.png")
 
-    result = cv_core.active_contour_greedy(
-        img_path, out_path,
-        int(request.POST.get("center_x", 200)),
-        int(request.POST.get("center_y", 200)),
-        int(request.POST.get("radius", 100)),
-        int(request.POST.get("num_points", 60)),
-        float(request.POST.get("alpha", 1.0)),
-        float(request.POST.get("beta", 1.0)),
-        float(request.POST.get("gamma", 1.5)),
-        int(request.POST.get("window", 7)),
-        int(request.POST.get("iterations", 100)),
-    )
+    # Common energy parameters
+    alpha = float(request.POST.get("alpha", 1.0))
+    beta = float(request.POST.get("beta", 1.0))
+    gamma = float(request.POST.get("gamma", 1.5))
+    window = int(request.POST.get("window", 7))
+    iterations = int(request.POST.get("iterations", 100))
+
+    points_json = request.POST.get("points", "")
+
+    if points_json:
+        # ── Drawn-points mode ──
+        pts = json.loads(points_json)  # [[x1,y1], [x2,y2], ...]
+        init_points = [(int(p[0]), int(p[1])) for p in pts]
+        result = cv_core.active_contour_from_points(
+            img_path, out_path,
+            init_points,
+            alpha, beta, gamma, window, iterations,
+        )
+    else:
+        # ── Circle mode (legacy) ──
+        result = cv_core.active_contour_greedy(
+            img_path, out_path,
+            int(request.POST.get("center_x", 200)),
+            int(request.POST.get("center_y", 200)),
+            int(request.POST.get("radius", 100)),
+            int(request.POST.get("num_points", 60)),
+            alpha, beta, gamma, window, iterations,
+        )
 
     return JsonResponse({
         "contour":    _media_url(result["output"]),
