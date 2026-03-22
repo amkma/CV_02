@@ -286,17 +286,21 @@ py::dict active_contour_greedy(const std::string& in,
     cv::Mat gray = load_image(in, "gray");
     cv::Mat color = load_image(in, "color");
 
-    // Compute gradient magnitude for image energy
+    // ── Edge detection ──
     cv::Mat blurred;
-    cv::GaussianBlur(gray, blurred, {5, 5}, 1.5);
+    cv::GaussianBlur(gray, blurred, {5, 5}, 1.4);
+    cv::Mat edges;
+    cv::Canny(blurred, edges, 30, 100);
 
-    cv::Mat gx, gy;
-    cv::Sobel(blurred, gx, CV_64F, 1, 0, 3);
-    cv::Sobel(blurred, gy, CV_64F, 0, 1, 3);
+    // ── Distance transform + its gradient ──
+    cv::Mat edge_inv;
+    cv::bitwise_not(edges, edge_inv);
+    cv::Mat dist_map;
+    cv::distanceTransform(edge_inv, dist_map, cv::DIST_L2, 5);
 
-    cv::Mat grad_mag;
-    cv::magnitude(gx, gy, grad_mag);
-    cv::normalize(grad_mag, grad_mag, 0.0, 1.0, cv::NORM_MINMAX);
+    cv::Mat grad_x, grad_y;
+    cv::Sobel(dist_map, grad_x, CV_64F, 1, 0, 3);
+    cv::Sobel(dist_map, grad_y, CV_64F, 0, 1, 3);
 
     // Initialise contour as circle
     int n = std::max(num_points, 8);
@@ -307,67 +311,62 @@ py::dict active_contour_greedy(const std::string& in,
         snake[i].y = cy + radius * std::sin(angle);
     }
 
-    int half_w = window_size / 2;
+    // ═══════════════════════════════════════════════════════
+    //  PHASE 1: Gradient descent on distance transform
+    // ═══════════════════════════════════════════════════════
+    int edge_iters = iterations * 2 / 3;
+    double step = gamma;
 
-    // Greedy iterations
-    for (int iter = 0; iter < iterations; ++iter) {
-        bool moved = false;
+    for (int iter = 0; iter < edge_iters; ++iter) {
+        bool any_moved = false;
 
-        // Average distance for continuity term
-        double d_avg = 0;
         for (int i = 0; i < n; ++i) {
-            int prev = (i - 1 + n) % n;
-            d_avg += cv::norm(snake[i] - snake[prev]);
+            int ix = std::clamp((int)std::round(snake[i].x), 1, gray.cols - 2);
+            int iy = std::clamp((int)std::round(snake[i].y), 1, gray.rows - 2);
+
+            float d = dist_map.at<float>(iy, ix);
+            if (d < 1.5) continue;
+
+            double gx_val = grad_x.at<double>(iy, ix);
+            double gy_val = grad_y.at<double>(iy, ix);
+            double mag = std::sqrt(gx_val * gx_val + gy_val * gy_val);
+            if (mag < 1e-6) continue;
+
+            double s = std::min(d * 0.5, step * 3.0);
+            snake[i].x -= (gx_val / mag) * s;
+            snake[i].y -= (gy_val / mag) * s;
+
+            snake[i].x = std::clamp(snake[i].x, 1.0, (double)(gray.cols - 2));
+            snake[i].y = std::clamp(snake[i].y, 1.0, (double)(gray.rows - 2));
+            any_moved = true;
         }
-        d_avg /= n;
+
+        if (!any_moved) break;
+    }
+
+    // ═══════════════════════════════════════════════════════
+    //  PHASE 2: Laplacian smoothing
+    // ═══════════════════════════════════════════════════════
+    int smooth_iters = iterations - edge_iters;
+    for (int iter = 0; iter < smooth_iters; ++iter) {
+        std::vector<cv::Point2d> smoothed = snake;
 
         for (int i = 0; i < n; ++i) {
             int prev = (i - 1 + n) % n;
             int next = (i + 1) % n;
 
-            double best_energy = 1e18;
-            cv::Point2d best_pos = snake[i];
+            int ix = std::clamp((int)std::round(snake[i].x), 0, gray.cols - 1);
+            int iy = std::clamp((int)std::round(snake[i].y), 0, gray.rows - 1);
+            float d = dist_map.at<float>(iy, ix);
 
-            for (int dy = -half_w; dy <= half_w; ++dy) {
-                for (int dx = -half_w; dx <= half_w; ++dx) {
-                    cv::Point2d candidate(snake[i].x + dx, snake[i].y + dy);
+            double anchor = std::exp(-d * 0.5);
+            double smooth_weight = alpha * 0.3 * (1.0 - anchor);
 
-                    // Bounds check
-                    if (candidate.x < 1 || candidate.y < 1 ||
-                        candidate.x >= gray.cols - 1 ||
-                        candidate.y >= gray.rows - 1)
-                        continue;
-
-                    // E_continuity
-                    double dist = cv::norm(candidate - snake[prev]);
-                    double e_cont = (d_avg - dist) * (d_avg - dist);
-
-                    // E_curvature
-                    cv::Point2d curv = snake[prev] - 2.0 * candidate + snake[next];
-                    double e_curv = curv.x * curv.x + curv.y * curv.y;
-
-                    // E_image (negative gradient = attracted to edges)
-                    int ix = static_cast<int>(std::round(candidate.x));
-                    int iy = static_cast<int>(std::round(candidate.y));
-                    double g = grad_mag.at<double>(iy, ix);
-                    double e_img = -g * g;
-
-                    double energy = alpha * e_cont + beta * e_curv + gamma * e_img;
-
-                    if (energy < best_energy) {
-                        best_energy = energy;
-                        best_pos = candidate;
-                    }
-                }
-            }
-
-            if (best_pos != snake[i]) {
-                snake[i] = best_pos;
-                moved = true;
-            }
+            cv::Point2d avg = (snake[prev] + snake[next]) * 0.5;
+            smoothed[i] = snake[i] * (1.0 - smooth_weight) + avg * smooth_weight;
         }
 
-        if (!moved) break;  // converged
+        snake = smoothed;
     }
 
     // ── Chain code (8-connectivity Freeman) ──

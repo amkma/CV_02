@@ -53,6 +53,11 @@ document.querySelectorAll(".ctrl").forEach(ctrl => {
 
     range.addEventListener("input", update);
     update(); // initial fill
+
+    // Live preview for circle-mode snake sliders
+    if (ctrl.classList.contains("circle-ctrl")) {
+        range.addEventListener("input", drawCirclePreview);
+    }
 });
 
 // ── Image upload ──
@@ -103,6 +108,82 @@ function gatherParams(containerId) {
         params[key] = range.value;
     });
     return params;
+}
+
+// ── Live circle preview on original image ──
+
+function drawCirclePreview() {
+    if (!imageUrl || drawMode || drawnPoints.length > 0) return;
+
+    // Show the snake section so the canvas is visible
+    const origImg = document.getElementById("img-snake-orig");
+    if (!origImg.src || origImg.src === location.href) {
+        origImg.src = imageUrl;
+    }
+    snakeSection.hidden = false;
+    placeholder.hidden = true;
+
+    // Make sure canvas is sized
+    const figRect = drawCanvas.parentElement.getBoundingClientRect();
+    if (drawCanvas.width !== Math.round(figRect.width) || figRect.width < 10) {
+        drawCanvas.width  = figRect.width;
+        drawCanvas.height = figRect.height - 28;
+    }
+
+    // Wait for image to load if needed
+    if (!origImg.complete || origImg.naturalWidth === 0) {
+        origImg.addEventListener("load", drawCirclePreview, { once: true });
+        return;
+    }
+
+    const { offsetX, offsetY, scale } = getRenderedImageRect();
+    const ctx = drawCanvas.getContext("2d");
+    ctx.clearRect(0, 0, drawCanvas.width, drawCanvas.height);
+
+    // Read slider values
+    const cx     = parseInt(document.querySelector('[data-key="center_x"] input').value);
+    const cy     = parseInt(document.querySelector('[data-key="center_y"] input').value);
+    const radius = parseInt(document.querySelector('[data-key="radius"] input').value);
+    const nPts   = parseInt(document.querySelector('[data-key="num_points"] input').value);
+
+    // Convert image coords → canvas coords
+    const canvasCx = offsetX + cx * scale;
+    const canvasCy = offsetY + cy * scale;
+    const canvasR  = radius * scale;
+
+    // Draw the circle
+    ctx.strokeStyle = "#00ff88";
+    ctx.lineWidth = 2;
+    ctx.setLineDash([6, 4]);
+    ctx.beginPath();
+    ctx.arc(canvasCx, canvasCy, canvasR, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Draw sample points on the circle
+    for (let i = 0; i < nPts; i++) {
+        const angle = (2 * Math.PI * i) / nPts;
+        const px = canvasCx + canvasR * Math.cos(angle);
+        const py = canvasCy + canvasR * Math.sin(angle);
+        ctx.beginPath();
+        ctx.arc(px, py, 3, 0, Math.PI * 2);
+        ctx.fillStyle = "#6c6cff";
+        ctx.fill();
+        ctx.strokeStyle = "#fff";
+        ctx.lineWidth = 1;
+        ctx.stroke();
+    }
+
+    // Draw center crosshair
+    ctx.strokeStyle = "#ff4d6a";
+    ctx.lineWidth = 1.5;
+    const cross = 8;
+    ctx.beginPath();
+    ctx.moveTo(canvasCx - cross, canvasCy);
+    ctx.lineTo(canvasCx + cross, canvasCy);
+    ctx.moveTo(canvasCx, canvasCy - cross);
+    ctx.lineTo(canvasCx, canvasCy + cross);
+    ctx.stroke();
 }
 
 // ── Drawing ──
@@ -359,6 +440,8 @@ btnClear.addEventListener("click", clearDrawing);
 
 async function runHough() {
     if (!imagePath) return;
+    const loader = document.getElementById("mini-loader");
+    loader.hidden = false;
 
     const params = gatherParams("hough-controls");
     params.image_path = imagePath;
@@ -390,11 +473,15 @@ async function runHough() {
 
     } catch (err) {
         console.error("Hough failed:", err);
+    } finally {
+        loader.hidden = true;
     }
 }
 
 async function runSnake() {
     if (!imagePath) return;
+    const loader = document.getElementById("mini-loader");
+    loader.hidden = false;
 
     const params = gatherParams("snake-controls");
     params.image_path = imagePath;
@@ -443,6 +530,8 @@ async function runSnake() {
 
     } catch (err) {
         console.error("Snake failed:", err);
+    } finally {
+        loader.hidden = true;
     }
 }
 
