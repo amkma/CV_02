@@ -9,11 +9,18 @@ from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
 
 # ── Make sure OpenCV DLLs are findable ──
-_opencv_bin = r"C:\Program Files\opencv\build\x64\vc16\bin"
-if os.path.isdir(_opencv_bin):
-    os.add_dll_directory(_opencv_bin)
-    if _opencv_bin not in os.environ.get("PATH", ""):
-        os.environ["PATH"] = _opencv_bin + ";" + os.environ.get("PATH", "")
+_opencv_candidates = [
+    r"C:\opencv\build\x64\vc16\bin",
+    r"C:\Program Files\opencv\build\x64\vc16\bin",
+    r"C:\opencv\build\x64\vc17\bin",
+    r"C:\Program Files\opencv\build\x64\vc17\bin",
+]
+for _opencv_bin in _opencv_candidates:
+    if os.path.isdir(_opencv_bin):
+        os.add_dll_directory(_opencv_bin)
+        if _opencv_bin not in os.environ.get("PATH", ""):
+            os.environ["PATH"] = _opencv_bin + ";" + os.environ.get("PATH", "")
+        break
 
 import cv_core
 

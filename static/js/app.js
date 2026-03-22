@@ -22,7 +22,7 @@ const previewThumb = document.getElementById("preview-thumb");
 const placeholder  = document.getElementById("placeholder");
 const btnHough     = document.getElementById("btn-hough");
 const btnSnake     = document.getElementById("btn-snake");
-const loading      = document.getElementById("loading");
+
 
 const houghSection = document.getElementById("hough-results");
 const snakeSection = document.getElementById("snake-results");
@@ -96,7 +96,7 @@ function gatherParams(containerId) {
 async function runHough() {
     if (!imagePath) return;
 
-    showLoading(true);
+
     const params = gatherParams("hough-controls");
     params.image_path = imagePath;
 
@@ -106,7 +106,7 @@ async function runHough() {
     try {
         const res  = await fetch(API.hough, { method: "POST", body: fd });
         const data = await res.json();
-        showLoading(false);
+
         if (data.error) { console.error(data.error); return; }
 
         document.getElementById("img-original").src = imageUrl;
@@ -122,18 +122,19 @@ async function runHough() {
             `<span class="stat"><strong>Ellipses:</strong> ${data.ellipse_count}</span>`;
 
         placeholder.hidden = true;
+        snakeSection.hidden = true;
         houghSection.hidden = false;
-        document.querySelector(".content").scrollTop = 0;
+
     } catch (err) {
         console.error("Hough failed:", err);
-        showLoading(false);
+
     }
 }
 
 async function runSnake() {
     if (!imagePath) return;
 
-    showLoading(true);
+
     const params = gatherParams("snake-controls");
     params.image_path = imagePath;
 
@@ -143,7 +144,7 @@ async function runSnake() {
     try {
         const res  = await fetch(API.snake, { method: "POST", body: fd });
         const data = await res.json();
-        showLoading(false);
+
         if (data.error) { console.error(data.error); return; }
 
         document.getElementById("img-snake-orig").src = imageUrl;
@@ -160,17 +161,16 @@ async function runSnake() {
         ccBox.hidden = false;
 
         placeholder.hidden = true;
+        houghSection.hidden = true;
         snakeSection.hidden = false;
-        snakeSection.scrollIntoView({ behavior: "smooth" });
+
     } catch (err) {
         console.error("Snake failed:", err);
-        showLoading(false);
+
     }
 }
 
-function showLoading(on) {
-    loading.hidden = !on;
-}
+
 
 // ── Button handlers ──
 

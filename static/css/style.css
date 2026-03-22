@@ -198,32 +198,48 @@ body {
 /* ── Right content ── */
 .content {
     flex: 1;
-    overflow-y: auto;
+    overflow: hidden;
     padding: 1.5rem;
     position: relative;
+    display: flex;
+    flex-direction: column;
 }
 
 .placeholder {
-    display: flex;
     align-items: center;
     justify-content: center;
     height: 100%;
     color: var(--muted);
     font-size: 1.2rem;
+    display: flex;
+}
+.placeholder[hidden] {
+    display: none !important;
 }
 
-.results-section { margin-bottom: 2rem; }
+.results-section {
+    margin-bottom: 0;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+.results-section[hidden] {
+    display: none !important;
+}
 .results-section h2 {
     color: var(--accent);
     font-size: 1.1rem;
     margin-bottom: 0.6rem;
+    flex-shrink: 0;
 }
 
 .stats {
     display: flex;
     gap: 0.8rem;
     flex-wrap: wrap;
-    margin-bottom: 1rem;
+    margin-bottom: 0.6rem;
+    flex-shrink: 0;
 }
 .stat {
     background: var(--surface);
@@ -236,10 +252,14 @@ body {
 .result-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: 1fr 1fr;
     gap: 0.6rem;
+    flex: 1;
+    min-height: 0;
 }
 .result-grid.two-col {
     grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr;
 }
 
 figure {
@@ -247,13 +267,23 @@ figure {
     border: 1px solid var(--border);
     border-radius: var(--radius);
     overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
 }
-figure img { width: 100%; display: block; }
+figure img {
+    width: 100%;
+    flex: 1;
+    min-height: 0;
+    object-fit: contain;
+    display: block;
+}
 figcaption {
     text-align: center;
-    padding: 0.4rem;
+    padding: 0.3rem;
     color: var(--muted);
-    font-size: 0.8rem;
+    font-size: 0.75rem;
+    flex-shrink: 0;
 }
 
 /* ── Chain code ── */

@@ -1,5 +1,8 @@
 .venv
 .vscode
 media
+build/
+*.pyd
+__pycache__/
 detector/__pycache__
 cv_project/__pycache__
