@@ -1,0 +1,37 @@
+# CMake generation dependency list for this directory.
+C:/Program Files/opencv/build/OpenCVConfig-version.cmake
+C:/Program Files/opencv/build/OpenCVConfig.cmake
+C:/Program Files/opencv/build/x64/vc16/lib/OpenCVConfig.cmake
+C:/Program Files/opencv/build/x64/vc16/lib/OpenCVModules-debug.cmake
+C:/Program Files/opencv/build/x64/vc16/lib/OpenCVModules-release.cmake
+C:/Program Files/opencv/build/x64/vc16/lib/OpenCVModules.cmake
+C:/Users/amkma/Desktop/pythan/CV_02/CMakeLists.txt
+C:/Users/amkma/Desktop/pythan/CV_02/build/CMakeFiles/4.3.0-rc1/CMakeCXXCompiler.cmake
+C:/Users/amkma/Desktop/pythan/CV_02/build/CMakeFiles/4.3.0-rc1/CMakeRCCompiler.cmake
+C:/Users/amkma/Desktop/pythan/CV_02/build/CMakeFiles/4.3.0-rc1/CMakeSystem.cmake
+C:/Users/amkma/Downloads/Programs/cmake-4.3.0-rc1-windows-x86_64/share/cmake-4.3/Modules/CMakeCXXInformation.cmake
+C:/Users/amkma/Downloads/Programs/cmake-4.3.0-rc1-windows-x86_64/share/cmake-4.3/Modules/CMakeCommonLanguageInclude.cmake
+C:/Users/amkma/Downloads/Programs/cmake-4.3.0-rc1-windows-x86_64/share/cmake-4.3/Modules/CMakeGenericSystem.cmake
+C:/Users/amkma/Downloads/Programs/cmake-4.3.0-rc1-windows-x86_64/share/cmake-4.3/Modules/CMakeInitializeConfigs.cmake
+C:/Users/amkma/Downloads/Programs/cmake-4.3.0-rc1-windows-x86_64/share/cmake-4.3/Modules/CMakeLanguageInformation.cmake
+C:/Users/amkma/Downloads/Programs/cmake-4.3.0-rc1-windows-x86_64/share/cmake-4.3/Modules/CMakeRCInformation.cmake
+C:/Users/amkma/Downloads/Programs/cmake-4.3.0-rc1-windows-x86_64/share/cmake-4.3/Modules/CMakeSystemSpecificInformation.cmake
+C:/Users/amkma/Downloads/Programs/cmake-4.3.0-rc1-windows-x86_64/share/cmake-4.3/Modules/CMakeSystemSpecificInitialize.cmake
+C:/Users/amkma/Downloads/Programs/cmake-4.3.0-rc1-windows-x86_64/share/cmake-4.3/Modules/Compiler/CMakeCommonCompilerMacros.cmake
+C:/Users/amkma/Downloads/Programs/cmake-4.3.0-rc1-windows-x86_64/share/cmake-4.3/Modules/Compiler/MSVC-CXX.cmake
+C:/Users/amkma/Downloads/Programs/cmake-4.3.0-rc1-windows-x86_64/share/cmake-4.3/Modules/Compiler/MSVC.cmake
+C:/Users/amkma/Downloads/Programs/cmake-4.3.0-rc1-windows-x86_64/share/cmake-4.3/Modules/FindPackageHandleStandardArgs.cmake
+C:/Users/amkma/Downloads/Programs/cmake-4.3.0-rc1-windows-x86_64/share/cmake-4.3/Modules/FindPackageMessage.cmake
+C:/Users/amkma/Downloads/Programs/cmake-4.3.0-rc1-windows-x86_64/share/cmake-4.3/Modules/FindPython/Support.cmake
+C:/Users/amkma/Downloads/Programs/cmake-4.3.0-rc1-windows-x86_64/share/cmake-4.3/Modules/FindPython3.cmake
+C:/Users/amkma/Downloads/Programs/cmake-4.3.0-rc1-windows-x86_64/share/cmake-4.3/Modules/Internal/CMakeCXXLinkerInformation.cmake
+C:/Users/amkma/Downloads/Programs/cmake-4.3.0-rc1-windows-x86_64/share/cmake-4.3/Modules/Internal/CMakeCommonLinkerInformation.cmake
+C:/Users/amkma/Downloads/Programs/cmake-4.3.0-rc1-windows-x86_64/share/cmake-4.3/Modules/Linker/MSVC-CXX.cmake
+C:/Users/amkma/Downloads/Programs/cmake-4.3.0-rc1-windows-x86_64/share/cmake-4.3/Modules/Linker/MSVC.cmake
+C:/Users/amkma/Downloads/Programs/cmake-4.3.0-rc1-windows-x86_64/share/cmake-4.3/Modules/Platform/Linker/Windows-MSVC-CXX.cmake
+C:/Users/amkma/Downloads/Programs/cmake-4.3.0-rc1-windows-x86_64/share/cmake-4.3/Modules/Platform/Linker/Windows-MSVC.cmake
+C:/Users/amkma/Downloads/Programs/cmake-4.3.0-rc1-windows-x86_64/share/cmake-4.3/Modules/Platform/Windows-Initialize.cmake
+C:/Users/amkma/Downloads/Programs/cmake-4.3.0-rc1-windows-x86_64/share/cmake-4.3/Modules/Platform/Windows-MSVC-CXX.cmake
+C:/Users/amkma/Downloads/Programs/cmake-4.3.0-rc1-windows-x86_64/share/cmake-4.3/Modules/Platform/Windows-MSVC.cmake
+C:/Users/amkma/Downloads/Programs/cmake-4.3.0-rc1-windows-x86_64/share/cmake-4.3/Modules/Platform/Windows.cmake
+C:/Users/amkma/Downloads/Programs/cmake-4.3.0-rc1-windows-x86_64/share/cmake-4.3/Modules/Platform/WindowsPaths.cmake

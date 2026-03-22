@@ -1,0 +1,30 @@
+{% extends "detector/base.html" %}
+{% block title %}Snake Results — CV_02{% endblock %}
+
+{% block content %}
+<a href="{% url 'upload' %}" class="back-link">← Back</a>
+
+<h2>Active Contour (Snake) Results</h2>
+
+<div class="stats">
+    <span class="stat"><strong>Points:</strong> {{ num_points }}</span>
+    <span class="stat"><strong>Perimeter:</strong> {{ perimeter }} px</span>
+    <span class="stat"><strong>Area:</strong> {{ area }} px²</span>
+</div>
+
+<div class="result-grid two-col">
+    <figure>
+        <img src="{{ original }}" alt="Original">
+        <figcaption>Original</figcaption>
+    </figure>
+    <figure>
+        <img src="{{ contour }}" alt="Contour">
+        <figcaption>Snake Contour</figcaption>
+    </figure>
+</div>
+
+<section class="chain-code-section">
+    <h3>Chain Code (Freeman 8-connectivity)</h3>
+    <pre class="chain-code">{{ chain_code }}</pre>
+</section>
+{% endblock %}

@@ -1,0 +1,177 @@
+/* ── CV_02 Stylesheet ──────────────────────────────────── */
+
+:root {
+    --bg:       #0f0f13;
+    --surface:  #1a1a24;
+    --border:   #2a2a3a;
+    --text:     #e0e0ec;
+    --muted:    #8888a0;
+    --accent:   #6c6cff;
+    --accent2:  #00c896;
+    --danger:   #ff4d6a;
+    --warn:     #ffb84d;
+    --radius:   10px;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    min-height: 100vh;
+}
+
+/* ── Header ── */
+header {
+    text-align: center;
+    padding: 2rem 1rem 1rem;
+    border-bottom: 1px solid var(--border);
+}
+header h1 a {
+    color: var(--accent);
+    text-decoration: none;
+    font-size: 1.8rem;
+    letter-spacing: 2px;
+}
+.subtitle { color: var(--muted); font-size: 0.95rem; margin-top: 0.3rem; }
+
+/* ── Main ── */
+main { max-width: 1100px; margin: 2rem auto; padding: 0 1rem; }
+
+/* ── Cards ── */
+.card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(460px, 1fr));
+    gap: 1.5rem;
+}
+.card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.5rem;
+}
+.card h2 {
+    font-size: 1.2rem;
+    color: var(--accent);
+    margin-bottom: 0.3rem;
+}
+.card p { color: var(--muted); font-size: 0.9rem; margin-bottom: 1rem; }
+
+/* ── Forms ── */
+.form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.6rem 1rem;
+}
+.field { display: flex; flex-direction: column; }
+.field label { font-size: 0.8rem; color: var(--muted); margin-bottom: 2px; }
+.field input, .field select {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    padding: 0.45rem 0.6rem;
+    font-size: 0.9rem;
+}
+.field input:focus { outline: none; border-color: var(--accent); }
+
+button {
+    margin-top: 1rem;
+    width: 100%;
+    padding: 0.7rem;
+    border: none;
+    border-radius: 8px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    color: #fff;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+button:hover { opacity: 0.85; }
+
+/* ── Alerts ── */
+.alert {
+    border-radius: var(--radius);
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+    font-size: 0.9rem;
+}
+.alert.error   { background: rgba(255,77,106,.12); border: 1px solid var(--danger); color: var(--danger); }
+.alert.warning { background: rgba(255,184,77,.1);  border: 1px solid var(--warn);   color: var(--warn); }
+
+/* ── Results ── */
+.back-link {
+    display: inline-block;
+    color: var(--accent);
+    text-decoration: none;
+    margin-bottom: 1rem;
+    font-size: 0.95rem;
+}
+.stats {
+    display: flex; gap: 1.5rem; flex-wrap: wrap;
+    margin-bottom: 1.5rem;
+}
+.stat {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.5rem 1rem;
+    font-size: 0.95rem;
+}
+
+.result-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1rem;
+}
+.result-grid.two-col {
+    grid-template-columns: 1fr 1fr;
+}
+figure {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+}
+figure img {
+    width: 100%;
+    display: block;
+}
+figcaption {
+    text-align: center;
+    padding: 0.5rem;
+    color: var(--muted);
+    font-size: 0.85rem;
+}
+
+/* ── Chain code ── */
+.chain-code-section {
+    margin-top: 1.5rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.2rem;
+}
+.chain-code-section h3 { font-size: 1rem; color: var(--accent); margin-bottom: 0.5rem; }
+.chain-code {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 0.8rem;
+    font-family: 'Cascadia Code', 'Consolas', monospace;
+    font-size: 0.85rem;
+    word-wrap: break-word;
+    white-space: pre-wrap;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+/* ── Responsive ── */
+@media (max-width: 600px) {
+    .card-grid { grid-template-columns: 1fr; }
+    .form-grid { grid-template-columns: 1fr; }
+    .result-grid, .result-grid.two-col { grid-template-columns: 1fr; }
+}

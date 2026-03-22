@@ -1,0 +1,13 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="18.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <CustomBuild Include="C:\Users\amkma\Desktop\pythan\CV_02\build\CMakeFiles\128ed8144469cfb3162b77345337e51e\generate.stamp.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="CMake Rules">
+      <UniqueIdentifier>{039DA420-FFDF-329F-ABE4-FF728ED27C41}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

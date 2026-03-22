@@ -1,0 +1,58 @@
+{% extends "detector/base.html" %}
+{% block title %}Upload — CV_02{% endblock %}
+
+{% block content %}
+{% if errors %}
+<div class="alert error">
+    <strong>Error:</strong>
+    {% for field, msgs in errors.items %}
+        {{ field }}: {{ msgs|join:", " }}
+    {% endfor %}
+</div>
+{% endif %}
+
+{% if not cv_core_loaded %}
+<div class="alert warning">
+    <strong>⚠ cv_core C++ module not loaded.</strong><br>
+    Run: <code>python build_cv_core.py build_ext --inplace</code>
+</div>
+{% endif %}
+
+<div class="card-grid">
+    <!-- Task 1: Hough Transform -->
+    <section class="card">
+        <h2>Task 1 — Hough Transform</h2>
+        <p>Canny edge detection → detect lines, circles, ellipses</p>
+        <form method="post" action="{% url 'hough_detect' %}" enctype="multipart/form-data">
+            {% csrf_token %}
+            <div class="form-grid">
+                {% for field in hough_form %}
+                <div class="field">
+                    <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                    {{ field }}
+                </div>
+                {% endfor %}
+            </div>
+            <button type="submit">Detect Shapes</button>
+        </form>
+    </section>
+
+    <!-- Task 2: Active Contour (Snake) -->
+    <section class="card">
+        <h2>Task 2 — Active Contour (Snake)</h2>
+        <p>Greedy algorithm → chain code, perimeter, area</p>
+        <form method="post" action="{% url 'snake_detect' %}" enctype="multipart/form-data">
+            {% csrf_token %}
+            <div class="form-grid">
+                {% for field in snake_form %}
+                <div class="field">
+                    <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                    {{ field }}
+                </div>
+                {% endfor %}
+            </div>
+            <button type="submit">Run Snake</button>
+        </form>
+    </section>
+</div>
+{% endblock %}

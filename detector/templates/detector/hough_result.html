@@ -1,0 +1,41 @@
+{% extends "detector/base.html" %}
+{% block title %}Hough Results — CV_02{% endblock %}
+
+{% block content %}
+<a href="{% url 'upload' %}" class="back-link">← Back</a>
+
+<h2>Hough Transform Results</h2>
+
+<div class="stats">
+    <span class="stat"><strong>Lines:</strong> {{ line_count }}</span>
+    <span class="stat"><strong>Circles:</strong> {{ circle_count }}</span>
+    <span class="stat"><strong>Ellipses:</strong> {{ ellipse_count }}</span>
+</div>
+
+<div class="result-grid">
+    <figure>
+        <img src="{{ original }}" alt="Original">
+        <figcaption>Original</figcaption>
+    </figure>
+    <figure>
+        <img src="{{ edges }}" alt="Canny Edges">
+        <figcaption>Canny Edges</figcaption>
+    </figure>
+    <figure>
+        <img src="{{ lines }}" alt="Lines">
+        <figcaption>Lines ({{ line_count }})</figcaption>
+    </figure>
+    <figure>
+        <img src="{{ circles }}" alt="Circles">
+        <figcaption>Circles ({{ circle_count }})</figcaption>
+    </figure>
+    <figure>
+        <img src="{{ ellipses }}" alt="Ellipses">
+        <figcaption>Ellipses ({{ ellipse_count }})</figcaption>
+    </figure>
+    <figure>
+        <img src="{{ combined }}" alt="Combined">
+        <figcaption>All Shapes Combined</figcaption>
+    </figure>
+</div>
+{% endblock %}
