@@ -22,7 +22,7 @@ const previewThumb = document.getElementById("preview-thumb");
 const placeholder  = document.getElementById("placeholder");
 const btnHough     = document.getElementById("btn-hough");
 const btnSnake     = document.getElementById("btn-snake");
-
+const miniLoader   = document.getElementById("mini-loader");
 
 const houghSection = document.getElementById("hough-results");
 const snakeSection = document.getElementById("snake-results");
@@ -96,7 +96,7 @@ function gatherParams(containerId) {
 async function runHough() {
     if (!imagePath) return;
 
-
+    miniLoader.hidden = false;
     const params = gatherParams("hough-controls");
     params.image_path = imagePath;
 
@@ -124,17 +124,18 @@ async function runHough() {
         placeholder.hidden = true;
         snakeSection.hidden = true;
         houghSection.hidden = false;
+        miniLoader.hidden = true;
 
     } catch (err) {
         console.error("Hough failed:", err);
-
+        miniLoader.hidden = true;
     }
 }
 
 async function runSnake() {
     if (!imagePath) return;
 
-
+    miniLoader.hidden = false;
     const params = gatherParams("snake-controls");
     params.image_path = imagePath;
 
@@ -163,10 +164,11 @@ async function runSnake() {
         placeholder.hidden = true;
         houghSection.hidden = true;
         snakeSection.hidden = false;
+        miniLoader.hidden = true;
 
     } catch (err) {
         console.error("Snake failed:", err);
-
+        miniLoader.hidden = true;
     }
 }
 
