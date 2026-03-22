@@ -2,27 +2,30 @@
 
 import os
 import uuid
+
 from django.conf import settings
-from django.shortcuts import render, redirect
+from django.http import JsonResponse
+from django.shortcuts import render
+from django.views.decorators.csrf import csrf_exempt
 
-from .forms import HoughForm, SnakeForm
+# ── Make sure OpenCV DLLs are findable ──
+_opencv_bin = r"C:\Program Files\opencv\build\x64\vc16\bin"
+if os.path.isdir(_opencv_bin):
+    os.add_dll_directory(_opencv_bin)
+    if _opencv_bin not in os.environ.get("PATH", ""):
+        os.environ["PATH"] = _opencv_bin + ";" + os.environ.get("PATH", "")
 
-# Import the C++ module — built with build_cv_core.py
-# Falls back to pure-Python implementation if C++ module is not available
-try:
-    import cv_core
-except (ImportError, OSError):
-    try:
-        from detector import cv_fallback as cv_core
-    except ImportError:
-        import cv_fallback as cv_core
+import cv_core
 
+
+# ── Helpers ────────────────────────────────────────────────────────
 
 def _save_upload(f):
-    """Save an uploaded file to MEDIA_ROOT/uploads/ and return its abs path."""
+    """Save uploaded file, return absolute path."""
     upload_dir = os.path.join(settings.MEDIA_ROOT, "uploads")
     os.makedirs(upload_dir, exist_ok=True)
-    name = f"{uuid.uuid4().hex}_{f.name}"
+    ext = os.path.splitext(f.name)[1].lower() or ".png"
+    name = f"{uuid.uuid4().hex}{ext}"
     path = os.path.join(upload_dir, name)
     with open(path, "wb") as dest:
         for chunk in f.chunks():
@@ -31,59 +34,62 @@ def _save_upload(f):
 
 
 def _media_url(abs_path):
-    """Convert an absolute path under MEDIA_ROOT to a URL."""
+    """Absolute path → media URL."""
     rel = os.path.relpath(abs_path, settings.MEDIA_ROOT)
     return settings.MEDIA_URL + rel.replace("\\", "/")
 
 
-# ── 1. Upload page (home) ──────────────────────────────────────────
+# ── Single page ───────────────────────────────────────────────────
 
-def upload(request):
-    return render(request, "detector/upload.html", {
-        "hough_form": HoughForm(),
-        "snake_form": SnakeForm(),
-        "cv_core_loaded": cv_core is not None,
-    })
+def home(request):
+    return render(request, "detector/home.html")
 
 
-# ── 2. Hough detection ─────────────────────────────────────────────
+# ── API: upload image ─────────────────────────────────────────────
 
-def hough_detect(request):
+@csrf_exempt
+def api_upload(request):
+    if request.method != "POST" or "image" not in request.FILES:
+        return JsonResponse({"error": "POST with image required"}, status=400)
+    path = _save_upload(request.FILES["image"])
+    return JsonResponse({"path": path, "url": _media_url(path)})
+
+
+# ── API: Hough detection ──────────────────────────────────────────
+
+@csrf_exempt
+def api_hough(request):
     if request.method != "POST":
-        return redirect("upload")
+        return JsonResponse({"error": "POST required"}, status=400)
 
-    form = HoughForm(request.POST, request.FILES)
-    if not form.is_valid():
-        return render(request, "detector/upload.html", {
-            "hough_form": form,
-            "snake_form": SnakeForm(),
-            "errors": form.errors,
-        })
+    img_path = request.POST.get("image_path", "")
+    if not img_path or not os.path.isfile(img_path):
+        return JsonResponse({"error": "Invalid image path"}, status=400)
 
-    if cv_core is None:
-        return render(request, "detector/upload.html", {
-            "hough_form": form,
-            "snake_form": SnakeForm(),
-            "errors": {"cv_core": "C++ module not compiled. Run: python build_cv_core.py build_ext --inplace"},
-        })
-
-    img_path = _save_upload(request.FILES["image"])
     results_dir = os.path.join(settings.MEDIA_ROOT, "results")
     os.makedirs(results_dir, exist_ok=True)
     prefix = os.path.join(results_dir, uuid.uuid4().hex)
 
-    d = form.cleaned_data
     result = cv_core.detect_all_shapes(
         img_path, prefix,
-        d["canny_t1"], d["canny_t2"], 3,
-        1.0, 1.0, d["line_thresh"], d["min_line_len"], d["max_line_gap"],
-        d["dp"], d["min_dist"], d["circle_p1"], d["circle_p2"],
-        d["min_r"], d["max_r"],
-        20,
+        float(request.POST.get("canny_t1", 50)),
+        float(request.POST.get("canny_t2", 150)),
+        3,
+        float(request.POST.get("rho", 1.0)),
+        float(request.POST.get("theta_deg", 1.0)),
+        int(request.POST.get("line_thresh", 50)),
+        float(request.POST.get("min_line_len", 50)),
+        float(request.POST.get("max_line_gap", 10)),
+        float(request.POST.get("dp", 1.2)),
+        float(request.POST.get("min_dist", 30)),
+        float(request.POST.get("circle_p1", 100)),
+        float(request.POST.get("circle_p2", 30)),
+        int(request.POST.get("min_r", 0)),
+        int(request.POST.get("max_r", 0)),
+        int(request.POST.get("min_contour_pts", 20)),
     )
 
-    context = {
-        "original":      _media_url(img_path),
+    return JsonResponse({
         "edges":         _media_url(result["edges"]),
         "lines":         _media_url(result["lines"]),
         "circles":       _media_url(result["circles"]),
@@ -92,51 +98,41 @@ def hough_detect(request):
         "line_count":    result["line_count"],
         "circle_count":  result["circle_count"],
         "ellipse_count": result["ellipse_count"],
-    }
-    return render(request, "detector/hough_result.html", context)
+    })
 
 
-# ── 3. Snake detection ─────────────────────────────────────────────
+# ── API: Snake detection ──────────────────────────────────────────
 
-def snake_detect(request):
+@csrf_exempt
+def api_snake(request):
     if request.method != "POST":
-        return redirect("upload")
+        return JsonResponse({"error": "POST required"}, status=400)
 
-    form = SnakeForm(request.POST, request.FILES)
-    if not form.is_valid():
-        return render(request, "detector/upload.html", {
-            "hough_form": HoughForm(),
-            "snake_form": form,
-            "errors": form.errors,
-        })
+    img_path = request.POST.get("image_path", "")
+    if not img_path or not os.path.isfile(img_path):
+        return JsonResponse({"error": "Invalid image path"}, status=400)
 
-    if cv_core is None:
-        return render(request, "detector/upload.html", {
-            "hough_form": HoughForm(),
-            "snake_form": form,
-            "errors": {"cv_core": "C++ module not compiled. Run: python build_cv_core.py build_ext --inplace"},
-        })
-
-    img_path = _save_upload(request.FILES["image"])
     results_dir = os.path.join(settings.MEDIA_ROOT, "results")
     os.makedirs(results_dir, exist_ok=True)
     out_path = os.path.join(results_dir, f"{uuid.uuid4().hex}_snake.png")
 
-    d = form.cleaned_data
     result = cv_core.active_contour_greedy(
         img_path, out_path,
-        d["center_x"], d["center_y"], d["radius"],
-        d["num_points"],
-        d["alpha"], d["beta"], d["gamma"],
-        d["window"], d["iterations"],
+        int(request.POST.get("center_x", 200)),
+        int(request.POST.get("center_y", 200)),
+        int(request.POST.get("radius", 100)),
+        int(request.POST.get("num_points", 60)),
+        float(request.POST.get("alpha", 1.0)),
+        float(request.POST.get("beta", 1.0)),
+        float(request.POST.get("gamma", 1.5)),
+        int(request.POST.get("window", 7)),
+        int(request.POST.get("iterations", 100)),
     )
 
-    context = {
-        "original":   _media_url(img_path),
+    return JsonResponse({
         "contour":    _media_url(result["output"]),
         "chain_code": result["chain_code"],
-        "perimeter":  f'{result["perimeter"]:.2f}',
-        "area":       f'{result["area"]:.2f}',
+        "perimeter":  round(result["perimeter"], 2),
+        "area":       round(result["area"], 2),
         "num_points": result["num_points"],
-    }
-    return render(request, "detector/snake_result.html", context)
+    })

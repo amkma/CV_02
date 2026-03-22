@@ -1,6 +1,5 @@
 """Django settings for CV_02."""
 
-import os
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
