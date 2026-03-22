@@ -6,3 +6,4 @@ build/
 __pycache__/
 detector/__pycache__
 cv_project/__pycache__
+.understand-anything
