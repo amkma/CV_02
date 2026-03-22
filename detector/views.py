@@ -8,10 +8,14 @@ from django.shortcuts import render, redirect
 from .forms import HoughForm, SnakeForm
 
 # Import the C++ module — built with build_cv_core.py
+# Falls back to pure-Python implementation if C++ module is not available
 try:
     import cv_core
-except ImportError:
-    cv_core = None
+except (ImportError, OSError):
+    try:
+        from detector import cv_fallback as cv_core
+    except ImportError:
+        import cv_fallback as cv_core
 
 
 def _save_upload(f):

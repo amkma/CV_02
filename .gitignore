@@ -1,2 +1,5 @@
 .venv
 .vscode
+media
+detector/__pycache__
+cv_project/__pycache__
