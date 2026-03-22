@@ -1,3 +1,0 @@
-C:/Users/amkma/Desktop/pythan/CV_02/build/CMakeFiles/cv_core.dir
-C:/Users/amkma/Desktop/pythan/CV_02/build/CMakeFiles/ALL_BUILD.dir
-C:/Users/amkma/Desktop/pythan/CV_02/build/CMakeFiles/ZERO_CHECK.dir
