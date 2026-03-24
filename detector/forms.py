@@ -24,6 +24,8 @@ class HoughForm(forms.Form):
     circle_p2   = forms.FloatField(label="Circle param2",    initial=30,   widget=_range(1, 200, 1, 30))
     min_r       = forms.IntegerField(label="Min radius",      initial=0,    widget=_range(0, 500, 1, 0))
     max_r       = forms.IntegerField(label="Max radius",      initial=0,    widget=_range(0, 500, 1, 0))
+    ellipse_min_dist = forms.FloatField(label="Ellipse min dist", initial=30, widget=_range(1, 200, 1, 30))
+    ellipse_votes = forms.IntegerField(label="Ellipse vote threshold", initial=10, widget=_range(1, 100, 1, 10))
 
 
 class SnakeForm(forms.Form):

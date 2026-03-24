@@ -135,37 +135,35 @@ py::dict hough_circles(const std::string& in,
 }
 
 /* ═══════════════════════════════════════════════════════════════════
- *  4.  Ellipse Detection  (contour-based fitEllipse)
+ *  4.  Ellipse Detection  (Hough Transform based)
  * ═══════════════════════════════════════════════════════════════════ */
 
 py::dict detect_ellipses(const std::string& in,
                          const std::string& edge_path,
                          const std::string& out,
-                         int min_contour_pts)
+                         int min_contour_pts,
+                         double ellipse_min_dist,
+                         int ellipse_votes)
 {
     cv::Mat color = load_image(in, "color");
+    cv::Mat gray  = load_image(in, "gray");
     cv::Mat edges = load_image(edge_path, "gray");
 
-    std::vector<std::vector<cv::Point>> contours = custom::find_contours(edges);
+    std::vector<custom::HoughEllipse> ellipses =
+        custom::hough_ellipses(edges, gray, ellipse_min_dist,
+                               std::max(5, ellipse_votes), 10, 0);
 
     cv::Mat canvas = color.clone();
-    int count = 0;
-
-    for (auto& c : contours) {
-        if (static_cast<int>(c.size()) < std::max(5, min_contour_pts))
-            continue;
-        cv::RotatedRect ell = custom::fit_ellipse(c);
-        float ratio = ell.size.width / (ell.size.height + 1e-6f);
-        if (ratio < 0.1f || ratio > 10.0f) continue;
-        custom::draw_ellipse_rr(canvas, ell, cv::Scalar(255, 0, 255), 2);
-        ++count;
+    for (auto& e : ellipses) {
+        cv::RotatedRect rr(e.center, e.axes, e.angle);
+        custom::draw_ellipse_rr(canvas, rr, cv::Scalar(255, 0, 255), 2);
     }
 
     save_image(out, canvas);
 
     py::dict result;
     result["output"]        = out;
-    result["ellipse_count"] = count;
+    result["ellipse_count"] = static_cast<int>(ellipses.size());
     return result;
 }
 
@@ -185,7 +183,9 @@ py::dict detect_all_shapes(const std::string& in,
                            double circle_p1, double circle_p2,
                            int min_r, int max_r,
                            // ellipses
-                           int min_contour_pts)
+                           int min_contour_pts,
+                           double ellipse_min_dist,
+                           int ellipse_votes)
 {
     // 1. Canny
     std::string edge_p = prefix + "_edges.png";
@@ -205,7 +205,8 @@ py::dict detect_all_shapes(const std::string& in,
 
     // 4. Ellipses
     std::string ell_p = prefix + "_ellipses.png";
-    py::dict ed = detect_ellipses(in, edge_p, ell_p, min_contour_pts);
+    py::dict ed = detect_ellipses(in, edge_p, ell_p, min_contour_pts,
+                                  ellipse_min_dist, ellipse_votes);
 
     // 5. Combined overlay
     cv::Mat color  = load_image(in, "color");
@@ -236,15 +237,13 @@ py::dict detect_all_shapes(const std::string& in,
     }
     // draw ellipses
     {
-        std::vector<std::vector<cv::Point>> contours =
-            custom::find_contours(edges.clone());
-        for (auto& c : contours) {
-            if (static_cast<int>(c.size()) < std::max(5, min_contour_pts))
-                continue;
-            cv::RotatedRect ell = custom::fit_ellipse(c);
-            float ratio = ell.size.width / (ell.size.height + 1e-6f);
-            if (ratio < 0.1f || ratio > 10.0f) continue;
-            custom::draw_ellipse_rr(canvas, ell, cv::Scalar(255, 0, 255), 2);
+        cv::Mat gray2 = load_image(in, "gray");
+        std::vector<custom::HoughEllipse> ells =
+            custom::hough_ellipses(edges, gray2, ellipse_min_dist,
+                                   std::max(5, ellipse_votes), 10, 0);
+        for (auto& e : ells) {
+            cv::RotatedRect rr(e.center, e.axes, e.angle);
+            custom::draw_ellipse_rr(canvas, rr, cv::Scalar(255, 0, 255), 2);
         }
     }
 
@@ -608,9 +607,11 @@ PYBIND11_MODULE(cv_core, m)
           py::arg("min_radius") = 0, py::arg("max_radius") = 0);
 
     m.def("detect_ellipses", &detect_ellipses,
-          "Detect and draw ellipses via custom contour + moment-based fit",
+          "Detect and draw ellipses via Hough Transform",
           py::arg("input_path"), py::arg("edge_path"), py::arg("output_path"),
-          py::arg("min_contour_points") = 20);
+          py::arg("min_contour_points") = 20,
+          py::arg("ellipse_min_dist") = 30.0,
+          py::arg("ellipse_votes") = 10);
 
     m.def("detect_all_shapes", &detect_all_shapes,
           "Run Canny → lines + circles + ellipses, return all paths",
@@ -623,7 +624,9 @@ PYBIND11_MODULE(cv_core, m)
           py::arg("dp") = 1.2, py::arg("min_dist") = 30.0,
           py::arg("circle_param1") = 100.0, py::arg("circle_param2") = 30.0,
           py::arg("min_radius") = 0, py::arg("max_radius") = 0,
-          py::arg("min_contour_points") = 20);
+          py::arg("min_contour_points") = 20,
+          py::arg("ellipse_min_dist") = 30.0,
+          py::arg("ellipse_votes") = 10);
 
     m.def("active_contour_greedy", &active_contour_greedy,
           "Greedy Snake active contour → chain code + perimeter + area",

@@ -96,6 +96,8 @@ def api_hough(request):
         int(request.POST.get("min_r", 0)),
         int(request.POST.get("max_r", 0)),
         int(request.POST.get("min_contour_pts", 20)),
+        float(request.POST.get("ellipse_min_dist", 2.0)),
+        int(request.POST.get("ellipse_votes", 250)),
     )
 
     return JsonResponse({
