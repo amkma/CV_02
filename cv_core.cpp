@@ -1,13 +1,16 @@
 /**
- * cv_core – C++ OpenCV operations for CV_02 (Hough + Snake).
+ * cv_core – C++ computer vision operations for CV_02 (Hough + Snake).
+ *
+ * All algorithmic functions are implemented from scratch in cv_custom_algorithms.h.
+ * OpenCV is used ONLY for cv::Mat, cv::imread, and cv::imwrite (image I/O).
  *
  * Exposed to Python via pybind11.
- * The Django layer is only a thin HTTP wrapper and must NEVER call cv2.
  */
 
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
-#include <opencv2/opencv.hpp>
+#include <opencv2/core.hpp>
+#include <opencv2/imgcodecs.hpp>
 #include <filesystem>
 #include <string>
 #include <vector>
@@ -16,9 +19,11 @@
 #include <algorithm>
 #include <sstream>
 
+#include "cv_custom_algorithms.h"
+
 namespace py = pybind11;
 
-/* ───────────────────── helpers (same pattern as plceholderawy) ───── */
+/* ───────────────────── helpers ─────────────────────────────────── */
 namespace {
 
 cv::Mat load_image(const std::string& path, const std::string& mode)
@@ -60,9 +65,8 @@ std::string canny_edge(const std::string& in,
                        int aperture)
 {
     cv::Mat gray = load_image(in, "gray");
-    cv::Mat edges;
     int ap = (aperture < 3) ? 3 : (aperture % 2 == 0 ? aperture + 1 : aperture);
-    cv::Canny(gray, edges, t1, t2, ap);
+    cv::Mat edges = custom::canny(gray, t1, t2, ap);
     return save_image(out, edges);
 }
 
@@ -80,15 +84,15 @@ py::dict hough_lines(const std::string& in,
     cv::Mat color = load_image(in, "color");
     cv::Mat edges = load_image(edge_path, "gray");
 
-    double theta = theta_deg * CV_PI / 180.0;
+    double theta = theta_deg * custom::PI / 180.0;
 
-    std::vector<cv::Vec4i> lines;
-    cv::HoughLinesP(edges, lines, rho, theta, threshold, min_length, max_gap);
+    std::vector<cv::Vec4i> lines =
+        custom::hough_lines_p(edges, rho, theta, threshold, min_length, max_gap);
 
     cv::Mat canvas = color.clone();
     for (auto& l : lines)
-        cv::line(canvas, {l[0], l[1]}, {l[2], l[3]},
-                 cv::Scalar(0, 0, 255), 2, cv::LINE_AA);
+        custom::draw_line(canvas, {l[0], l[1]}, {l[2], l[3]},
+                          cv::Scalar(0, 0, 255), 2);
 
     save_image(out, canvas);
 
@@ -111,16 +115,15 @@ py::dict hough_circles(const std::string& in,
     cv::Mat color = load_image(in, "color");
     cv::Mat gray  = load_image(in, "gray");
 
-    std::vector<cv::Vec3f> circles;
-    cv::HoughCircles(gray, circles, cv::HOUGH_GRADIENT,
-                     dp, min_dist, param1, param2, min_r, max_r);
+    std::vector<cv::Vec3f> circles =
+        custom::hough_circles(gray, dp, min_dist, param1, param2, min_r, max_r);
 
     cv::Mat canvas = color.clone();
     for (auto& c : circles) {
-        cv::Point center(cvRound(c[0]), cvRound(c[1]));
-        int radius = cvRound(c[2]);
-        cv::circle(canvas, center, radius, cv::Scalar(0, 255, 0), 2, cv::LINE_AA);
-        cv::circle(canvas, center, 3,      cv::Scalar(0, 255, 0), -1);
+        cv::Point center((int)std::round(c[0]), (int)std::round(c[1]));
+        int radius = (int)std::round(c[2]);
+        custom::draw_circle(canvas, center, radius, cv::Scalar(0, 255, 0), 2);
+        custom::draw_circle(canvas, center, 3,      cv::Scalar(0, 255, 0), -1);
     }
 
     save_image(out, canvas);
@@ -143,8 +146,7 @@ py::dict detect_ellipses(const std::string& in,
     cv::Mat color = load_image(in, "color");
     cv::Mat edges = load_image(edge_path, "gray");
 
-    std::vector<std::vector<cv::Point>> contours;
-    cv::findContours(edges, contours, cv::RETR_LIST, cv::CHAIN_APPROX_NONE);
+    std::vector<std::vector<cv::Point>> contours = custom::find_contours(edges);
 
     cv::Mat canvas = color.clone();
     int count = 0;
@@ -152,11 +154,10 @@ py::dict detect_ellipses(const std::string& in,
     for (auto& c : contours) {
         if (static_cast<int>(c.size()) < std::max(5, min_contour_pts))
             continue;
-        cv::RotatedRect ell = cv::fitEllipse(c);
-        // filter out degenerate ellipses
+        cv::RotatedRect ell = custom::fit_ellipse(c);
         float ratio = ell.size.width / (ell.size.height + 1e-6f);
         if (ratio < 0.1f || ratio > 10.0f) continue;
-        cv::ellipse(canvas, ell, cv::Scalar(255, 0, 255), 2, cv::LINE_AA);
+        custom::draw_ellipse_rr(canvas, ell, cv::Scalar(255, 0, 255), 2);
         ++count;
     }
 
@@ -213,38 +214,37 @@ py::dict detect_all_shapes(const std::string& in,
 
     // draw lines
     {
-        double theta = theta_deg * CV_PI / 180.0;
-        std::vector<cv::Vec4i> lines;
-        cv::HoughLinesP(edges, lines, rho, theta, line_thresh,
-                        min_line_len, max_line_gap);
+        double theta = theta_deg * custom::PI / 180.0;
+        std::vector<cv::Vec4i> lines =
+            custom::hough_lines_p(edges, rho, theta, line_thresh,
+                                  min_line_len, max_line_gap);
         for (auto& l : lines)
-            cv::line(canvas, {l[0], l[1]}, {l[2], l[3]},
-                     cv::Scalar(0, 0, 255), 2, cv::LINE_AA);
+            custom::draw_line(canvas, {l[0], l[1]}, {l[2], l[3]},
+                              cv::Scalar(0, 0, 255), 2);
     }
     // draw circles
     {
         cv::Mat gray = load_image(in, "gray");
-        std::vector<cv::Vec3f> circles;
-        cv::HoughCircles(gray, circles, cv::HOUGH_GRADIENT,
-                         dp, min_dist, circle_p1, circle_p2, min_r, max_r);
+        std::vector<cv::Vec3f> circles =
+            custom::hough_circles(gray, dp, min_dist, circle_p1, circle_p2,
+                                  min_r, max_r);
         for (auto& c : circles) {
-            cv::Point ctr(cvRound(c[0]), cvRound(c[1]));
-            cv::circle(canvas, ctr, cvRound(c[2]),
-                       cv::Scalar(0, 255, 0), 2, cv::LINE_AA);
+            cv::Point ctr((int)std::round(c[0]), (int)std::round(c[1]));
+            custom::draw_circle(canvas, ctr, (int)std::round(c[2]),
+                                cv::Scalar(0, 255, 0), 2);
         }
     }
     // draw ellipses
     {
-        std::vector<std::vector<cv::Point>> contours;
-        cv::findContours(edges.clone(), contours,
-                         cv::RETR_LIST, cv::CHAIN_APPROX_NONE);
+        std::vector<std::vector<cv::Point>> contours =
+            custom::find_contours(edges.clone());
         for (auto& c : contours) {
             if (static_cast<int>(c.size()) < std::max(5, min_contour_pts))
                 continue;
-            cv::RotatedRect ell = cv::fitEllipse(c);
+            cv::RotatedRect ell = custom::fit_ellipse(c);
             float ratio = ell.size.width / (ell.size.height + 1e-6f);
             if (ratio < 0.1f || ratio > 10.0f) continue;
-            cv::ellipse(canvas, ell, cv::Scalar(255, 0, 255), 2, cv::LINE_AA);
+            custom::draw_ellipse_rr(canvas, ell, cv::Scalar(255, 0, 255), 2);
         }
     }
 
@@ -265,15 +265,6 @@ py::dict detect_all_shapes(const std::string& in,
 
 /* ═══════════════════════════════════════════════════════════════════
  *  6.  Active Contour Model  (Greedy Snake)
- * ═══════════════════════════════════════════════════════════════════
- *
- *  Energy = α·E_continuity + β·E_curvature + γ·E_image
- *
- *  E_continuity = |d̄ - |p_i - p_{i-1}||²   (keeps points evenly spaced)
- *  E_curvature  = |p_{i-1} - 2p_i + p_{i+1}|²  (penalises sharp bends)
- *  E_image      = -|∇I(p_i)|²                   (attracts to edges)
- *
- *  Greedy: for each point, search w×w window for minimum-energy move.
  * ═══════════════════════════════════════════════════════════════════ */
 
 py::dict active_contour_greedy(const std::string& in,
@@ -286,27 +277,26 @@ py::dict active_contour_greedy(const std::string& in,
     cv::Mat gray = load_image(in, "gray");
     cv::Mat color = load_image(in, "color");
 
-    // ── Edge detection ──
-    cv::Mat blurred;
-    cv::GaussianBlur(gray, blurred, {5, 5}, 1.4);
-    cv::Mat edges;
-    cv::Canny(blurred, edges, 30, 100);
+    // ── Edge detection (custom Canny includes Gaussian blur) ──
+    cv::Mat edges = custom::canny(gray, 30, 100, 3);
 
     // ── Distance transform + its gradient ──
-    cv::Mat edge_inv;
-    cv::bitwise_not(edges, edge_inv);
-    cv::Mat dist_map;
-    cv::distanceTransform(edge_inv, dist_map, cv::DIST_L2, 5);
+    // bitwise_not: invert edges
+    cv::Mat edge_inv(edges.rows, edges.cols, CV_8UC1);
+    for (int y = 0; y < edges.rows; ++y)
+        for (int x = 0; x < edges.cols; ++x)
+            edge_inv.at<uchar>(y, x) = 255 - edges.at<uchar>(y, x);
 
-    cv::Mat grad_x, grad_y;
-    cv::Sobel(dist_map, grad_x, CV_64F, 1, 0, 3);
-    cv::Sobel(dist_map, grad_y, CV_64F, 0, 1, 3);
+    cv::Mat dist_map = custom::distance_transform(edge_inv);
+
+    cv::Mat grad_x = custom::sobel(dist_map, 1, 0);
+    cv::Mat grad_y = custom::sobel(dist_map, 0, 1);
 
     // Initialise contour as circle
     int n = std::max(num_points, 8);
     std::vector<cv::Point2d> snake(n);
     for (int i = 0; i < n; ++i) {
-        double angle = 2.0 * CV_PI * i / n;
+        double angle = 2.0 * custom::PI * i / n;
         snake[i].x = cx + radius * std::cos(angle);
         snake[i].y = cy + radius * std::sin(angle);
     }
@@ -332,7 +322,7 @@ py::dict active_contour_greedy(const std::string& in,
             double mag = std::sqrt(gx_val * gx_val + gy_val * gy_val);
             if (mag < 1e-6) continue;
 
-            double s = std::min(d * 0.5, step * 3.0);
+            double s = std::min((double)d * 0.5, step * 3.0);
             snake[i].x -= (gx_val / mag) * s;
             snake[i].y -= (gy_val / mag) * s;
 
@@ -362,192 +352,6 @@ py::dict active_contour_greedy(const std::string& in,
             double anchor = std::exp(-d * 0.5);
             double smooth_weight = alpha * 0.3 * (1.0 - anchor);
 
-            cv::Point2d avg = (snake[prev] + snake[next]) * 0.5;
-            smoothed[i] = snake[i] * (1.0 - smooth_weight) + avg * smooth_weight;
-        }
-
-        snake = smoothed;
-    }
-
-    // ── Chain code (8-connectivity Freeman) ──
-    std::vector<int> chain_code;
-    //  Direction mapping:
-    //  3 2 1
-    //  4 x 0
-    //  5 6 7
-    auto direction = [](const cv::Point2d& from, const cv::Point2d& to) -> int {
-        int dx = static_cast<int>(std::round(to.x - from.x));
-        int dy = static_cast<int>(std::round(to.y - from.y));
-        dx = std::clamp(dx, -1, 1);
-        dy = std::clamp(dy, -1, 1);
-        // map (dx,dy) → chain code
-        if (dx ==  1 && dy ==  0) return 0;
-        if (dx ==  1 && dy == -1) return 1;
-        if (dx ==  0 && dy == -1) return 2;
-        if (dx == -1 && dy == -1) return 3;
-        if (dx == -1 && dy ==  0) return 4;
-        if (dx == -1 && dy ==  1) return 5;
-        if (dx ==  0 && dy ==  1) return 6;
-        if (dx ==  1 && dy ==  1) return 7;
-        return -1;  // same point
-    };
-
-    for (int i = 0; i < n; ++i) {
-        int next = (i + 1) % n;
-        int code = direction(snake[i], snake[next]);
-        if (code >= 0) chain_code.push_back(code);
-    }
-
-    // ── Perimeter from chain code ──
-    double perimeter = 0;
-    for (int c : chain_code)
-        perimeter += (c % 2 == 0) ? 1.0 : std::sqrt(2.0);
-
-    // ── Area via shoelace formula ──
-    double area = 0;
-    for (int i = 0; i < n; ++i) {
-        int j = (i + 1) % n;
-        area += snake[i].x * snake[j].y;
-        area -= snake[j].x * snake[i].y;
-    }
-    area = std::abs(area) * 0.5;
-
-    // ── Draw final contour ──
-    cv::Mat canvas = color.clone();
-    std::vector<cv::Point> pts(n);
-    for (int i = 0; i < n; ++i) {
-        pts[i].x = static_cast<int>(std::round(snake[i].x));
-        pts[i].y = static_cast<int>(std::round(snake[i].y));
-    }
-    cv::polylines(canvas, pts, true, cv::Scalar(0, 255, 0), 2, cv::LINE_AA);
-    for (auto& p : pts)
-        cv::circle(canvas, p, 3, cv::Scalar(0, 0, 255), -1);
-
-    save_image(out, canvas);
-
-    // Chain code as string
-    std::ostringstream cc_ss;
-    for (size_t i = 0; i < chain_code.size(); ++i) {
-        if (i > 0) cc_ss << " ";
-        cc_ss << chain_code[i];
-    }
-
-    py::dict result;
-    result["output"]     = out;
-    result["chain_code"] = cc_ss.str();
-    result["perimeter"]  = perimeter;
-    result["area"]       = area;
-    result["num_points"] = n;
-    return result;
-}
-
-/* ═══════════════════════════════════════════════════════════════════
- *  7.  Active Contour from User-Drawn Points
- * ═══════════════════════════════════════════════════════════════════
- *
- *  Same energy minimisation as active_contour_greedy, but the initial
- *  contour is supplied by the user as a list of (x, y) coordinate pairs
- *  drawn interactively on the image.
- * ═══════════════════════════════════════════════════════════════════ */
-
-py::dict active_contour_from_points(const std::string& in,
-                                    const std::string& out,
-                                    std::vector<std::pair<int,int>> init_points,
-                                    double alpha, double beta, double gamma,
-                                    int window_size, int iterations)
-{
-    if (init_points.size() < 3)
-        throw std::runtime_error("Need at least 3 contour points");
-
-    cv::Mat gray  = load_image(in, "gray");
-    cv::Mat color = load_image(in, "color");
-
-    // ── Edge detection ──
-    cv::Mat blurred;
-    cv::GaussianBlur(gray, blurred, {5, 5}, 1.4);
-    cv::Mat edges;
-    cv::Canny(blurred, edges, 30, 100);
-
-    // ── Distance transform + its gradient ──
-    cv::Mat edge_inv;
-    cv::bitwise_not(edges, edge_inv);
-    cv::Mat dist_map;
-    cv::distanceTransform(edge_inv, dist_map, cv::DIST_L2, 5);
-
-    // Gradient of distance transform → points toward nearest edge
-    cv::Mat grad_x, grad_y;
-    cv::Sobel(dist_map, grad_x, CV_64F, 1, 0, 3);
-    cv::Sobel(dist_map, grad_y, CV_64F, 0, 1, 3);
-
-    // Initialise contour from user-drawn points
-    int n = static_cast<int>(init_points.size());
-    std::vector<cv::Point2d> snake(n);
-    for (int i = 0; i < n; ++i) {
-        snake[i].x = init_points[i].first;
-        snake[i].y = init_points[i].second;
-    }
-
-    // ═══════════════════════════════════════════════════════
-    //  PHASE 1: Gradient descent on distance transform
-    //  Each point follows the steepest descent toward the
-    //  nearest edge. Guaranteed to converge.
-    // ═══════════════════════════════════════════════════════
-    int edge_iters = iterations * 2 / 3;
-    double step = gamma;  // use gamma slider as step size multiplier
-
-    for (int iter = 0; iter < edge_iters; ++iter) {
-        bool any_moved = false;
-
-        for (int i = 0; i < n; ++i) {
-            int ix = std::clamp((int)std::round(snake[i].x), 1, gray.cols - 2);
-            int iy = std::clamp((int)std::round(snake[i].y), 1, gray.rows - 2);
-
-            float d = dist_map.at<float>(iy, ix);
-            if (d < 1.5) continue;  // already on/near an edge
-
-            double gx = grad_x.at<double>(iy, ix);
-            double gy = grad_y.at<double>(iy, ix);
-            double mag = std::sqrt(gx * gx + gy * gy);
-            if (mag < 1e-6) continue;
-
-            // Step size: proportional to distance, capped
-            double s = std::min(d * 0.5, step * 3.0);
-            snake[i].x -= (gx / mag) * s;
-            snake[i].y -= (gy / mag) * s;
-
-            // Clamp to image bounds
-            snake[i].x = std::clamp(snake[i].x, 1.0, (double)(gray.cols - 2));
-            snake[i].y = std::clamp(snake[i].y, 1.0, (double)(gray.rows - 2));
-            any_moved = true;
-        }
-
-        if (!any_moved) break;
-    }
-
-    // ═══════════════════════════════════════════════════════
-    //  PHASE 2: Laplacian smoothing
-    //  Gently average neighboring points for smooth contour.
-    //  alpha controls smoothing strength (0 = no smoothing).
-    //  Points near edges are anchored in place.
-    // ═══════════════════════════════════════════════════════
-    int smooth_iters = iterations - edge_iters;
-    for (int iter = 0; iter < smooth_iters; ++iter) {
-        std::vector<cv::Point2d> smoothed = snake;
-
-        for (int i = 0; i < n; ++i) {
-            int prev = (i - 1 + n) % n;
-            int next = (i + 1) % n;
-
-            // How close is this point to an edge?
-            int ix = std::clamp((int)std::round(snake[i].x), 0, gray.cols - 1);
-            int iy = std::clamp((int)std::round(snake[i].y), 0, gray.rows - 1);
-            float d = dist_map.at<float>(iy, ix);
-
-            // Anchor factor: points on edges barely move
-            double anchor = std::exp(-d * 0.5);  // 1.0 on edge, → 0 far away
-            double smooth_weight = alpha * 0.3 * (1.0 - anchor);
-
-            // Laplacian: average of neighbors
             cv::Point2d avg = (snake[prev] + snake[next]) * 0.5;
             smoothed[i] = snake[i] * (1.0 - smooth_weight) + avg * smooth_weight;
         }
@@ -600,13 +404,168 @@ py::dict active_contour_from_points(const std::string& in,
         pts[i].x = static_cast<int>(std::round(snake[i].x));
         pts[i].y = static_cast<int>(std::round(snake[i].y));
     }
-    cv::polylines(canvas, pts, true, cv::Scalar(0, 255, 0), 2, cv::LINE_AA);
+    custom::draw_polylines(canvas, pts, true, cv::Scalar(0, 255, 0), 2);
     for (auto& p : pts)
-        cv::circle(canvas, p, 3, cv::Scalar(0, 0, 255), -1);
+        custom::draw_circle(canvas, p, 3, cv::Scalar(0, 0, 255), -1);
 
     save_image(out, canvas);
 
-    // Chain code as string
+    std::ostringstream cc_ss;
+    for (size_t i = 0; i < chain_code.size(); ++i) {
+        if (i > 0) cc_ss << " ";
+        cc_ss << chain_code[i];
+    }
+
+    py::dict result;
+    result["output"]     = out;
+    result["chain_code"] = cc_ss.str();
+    result["perimeter"]  = perimeter;
+    result["area"]       = area;
+    result["num_points"] = n;
+    return result;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+ *  7.  Active Contour from User-Drawn Points
+ * ═══════════════════════════════════════════════════════════════════ */
+
+py::dict active_contour_from_points(const std::string& in,
+                                    const std::string& out,
+                                    std::vector<std::pair<int,int>> init_points,
+                                    double alpha, double beta, double gamma,
+                                    int window_size, int iterations)
+{
+    if (init_points.size() < 3)
+        throw std::runtime_error("Need at least 3 contour points");
+
+    cv::Mat gray  = load_image(in, "gray");
+    cv::Mat color = load_image(in, "color");
+
+    // ── Edge detection (custom Canny includes Gaussian blur) ──
+    cv::Mat edges = custom::canny(gray, 30, 100, 3);
+
+    // ── Distance transform + its gradient ──
+    cv::Mat edge_inv(edges.rows, edges.cols, CV_8UC1);
+    for (int y = 0; y < edges.rows; ++y)
+        for (int x = 0; x < edges.cols; ++x)
+            edge_inv.at<uchar>(y, x) = 255 - edges.at<uchar>(y, x);
+
+    cv::Mat dist_map = custom::distance_transform(edge_inv);
+
+    cv::Mat grad_x = custom::sobel(dist_map, 1, 0);
+    cv::Mat grad_y = custom::sobel(dist_map, 0, 1);
+
+    // Initialise contour from user-drawn points
+    int n = static_cast<int>(init_points.size());
+    std::vector<cv::Point2d> snake(n);
+    for (int i = 0; i < n; ++i) {
+        snake[i].x = init_points[i].first;
+        snake[i].y = init_points[i].second;
+    }
+
+    // PHASE 1: Gradient descent on distance transform
+    int edge_iters = iterations * 2 / 3;
+    double step = gamma;
+
+    for (int iter = 0; iter < edge_iters; ++iter) {
+        bool any_moved = false;
+
+        for (int i = 0; i < n; ++i) {
+            int ix = std::clamp((int)std::round(snake[i].x), 1, gray.cols - 2);
+            int iy = std::clamp((int)std::round(snake[i].y), 1, gray.rows - 2);
+
+            float d = dist_map.at<float>(iy, ix);
+            if (d < 1.5) continue;
+
+            double gx = grad_x.at<double>(iy, ix);
+            double gy = grad_y.at<double>(iy, ix);
+            double mag = std::sqrt(gx * gx + gy * gy);
+            if (mag < 1e-6) continue;
+
+            double s = std::min((double)d * 0.5, step * 3.0);
+            snake[i].x -= (gx / mag) * s;
+            snake[i].y -= (gy / mag) * s;
+
+            snake[i].x = std::clamp(snake[i].x, 1.0, (double)(gray.cols - 2));
+            snake[i].y = std::clamp(snake[i].y, 1.0, (double)(gray.rows - 2));
+            any_moved = true;
+        }
+
+        if (!any_moved) break;
+    }
+
+    // PHASE 2: Laplacian smoothing
+    int smooth_iters = iterations - edge_iters;
+    for (int iter = 0; iter < smooth_iters; ++iter) {
+        std::vector<cv::Point2d> smoothed = snake;
+
+        for (int i = 0; i < n; ++i) {
+            int prev = (i - 1 + n) % n;
+            int next = (i + 1) % n;
+
+            int ix = std::clamp((int)std::round(snake[i].x), 0, gray.cols - 1);
+            int iy = std::clamp((int)std::round(snake[i].y), 0, gray.rows - 1);
+            float d = dist_map.at<float>(iy, ix);
+
+            double anchor = std::exp(-d * 0.5);
+            double smooth_weight = alpha * 0.3 * (1.0 - anchor);
+
+            cv::Point2d avg = (snake[prev] + snake[next]) * 0.5;
+            smoothed[i] = snake[i] * (1.0 - smooth_weight) + avg * smooth_weight;
+        }
+
+        snake = smoothed;
+    }
+
+    // ── Chain code (8-connectivity Freeman) ──
+    std::vector<int> chain_code;
+    auto direction = [](const cv::Point2d& from, const cv::Point2d& to) -> int {
+        int dx = static_cast<int>(std::round(to.x - from.x));
+        int dy = static_cast<int>(std::round(to.y - from.y));
+        dx = std::clamp(dx, -1, 1);
+        dy = std::clamp(dy, -1, 1);
+        if (dx ==  1 && dy ==  0) return 0;
+        if (dx ==  1 && dy == -1) return 1;
+        if (dx ==  0 && dy == -1) return 2;
+        if (dx == -1 && dy == -1) return 3;
+        if (dx == -1 && dy ==  0) return 4;
+        if (dx == -1 && dy ==  1) return 5;
+        if (dx ==  0 && dy ==  1) return 6;
+        if (dx ==  1 && dy ==  1) return 7;
+        return -1;
+    };
+
+    for (int i = 0; i < n; ++i) {
+        int next = (i + 1) % n;
+        int code = direction(snake[i], snake[next]);
+        if (code >= 0) chain_code.push_back(code);
+    }
+
+    double perimeter = 0;
+    for (int c : chain_code)
+        perimeter += (c % 2 == 0) ? 1.0 : std::sqrt(2.0);
+
+    double area = 0;
+    for (int i = 0; i < n; ++i) {
+        int j = (i + 1) % n;
+        area += snake[i].x * snake[j].y;
+        area -= snake[j].x * snake[i].y;
+    }
+    area = std::abs(area) * 0.5;
+
+    // ── Draw final contour ──
+    cv::Mat canvas = color.clone();
+    std::vector<cv::Point> pts(n);
+    for (int i = 0; i < n; ++i) {
+        pts[i].x = static_cast<int>(std::round(snake[i].x));
+        pts[i].y = static_cast<int>(std::round(snake[i].y));
+    }
+    custom::draw_polylines(canvas, pts, true, cv::Scalar(0, 255, 0), 2);
+    for (auto& p : pts)
+        custom::draw_circle(canvas, p, 3, cv::Scalar(0, 0, 255), -1);
+
+    save_image(out, canvas);
+
     std::ostringstream cc_ss;
     for (size_t i = 0; i < chain_code.size(); ++i) {
         if (i > 0) cc_ss << " ";
@@ -626,30 +585,30 @@ py::dict active_contour_from_points(const std::string& in,
 
 PYBIND11_MODULE(cv_core, m)
 {
-    m.doc() = "C++ OpenCV core – Hough transform & Active Contour for CV_02";
+    m.doc() = "C++ custom CV core – Hough transform & Active Contour for CV_02";
 
     m.def("canny_edge", &canny_edge,
-          "Canny edge detection",
+          "Canny edge detection (from scratch)",
           py::arg("input_path"), py::arg("output_path"),
           py::arg("threshold1") = 50.0, py::arg("threshold2") = 150.0,
           py::arg("aperture") = 3);
 
     m.def("hough_lines", &hough_lines,
-          "Detect and draw lines via HoughLinesP",
+          "Detect and draw lines via custom HoughLinesP",
           py::arg("input_path"), py::arg("edge_path"), py::arg("output_path"),
           py::arg("rho") = 1.0, py::arg("theta_deg") = 1.0,
           py::arg("threshold") = 50,
           py::arg("min_line_length") = 50.0, py::arg("max_line_gap") = 10.0);
 
     m.def("hough_circles", &hough_circles,
-          "Detect and draw circles via HoughCircles",
+          "Detect and draw circles via custom Hough gradient",
           py::arg("input_path"), py::arg("output_path"),
           py::arg("dp") = 1.2, py::arg("min_dist") = 30.0,
           py::arg("param1") = 100.0, py::arg("param2") = 30.0,
           py::arg("min_radius") = 0, py::arg("max_radius") = 0);
 
     m.def("detect_ellipses", &detect_ellipses,
-          "Detect and draw ellipses via contour-based fitEllipse",
+          "Detect and draw ellipses via custom contour + moment-based fit",
           py::arg("input_path"), py::arg("edge_path"), py::arg("output_path"),
           py::arg("min_contour_points") = 20);
 
