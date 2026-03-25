@@ -92,7 +92,7 @@ This project implements a complete "digital pipeline" from the browser to the CP
 │  └─────────────────────────────────────────────────────────┘    │
 └─────────────────────────────────────────────────────────────────┘
 
-4. Installation
+## 4. Installation
 Prerequisites
  * Python 3.12+
  * CMake 3.15 or higher
@@ -113,7 +113,7 @@ pip install -r requirements.txt
  * Run the Django Server:
    python manage.py runserver
 
-5. Usage Instructions
+## 5. Usage Instructions
 Running a Detection Task
  * Upload an Image: Open the application in your browser (http://localhost:8000) and upload a target image using the left-hand panel.
  * Task 1: Hough Transform:
@@ -127,7 +127,7 @@ Running a Detection Task
      * Beta (\beta): Controls the curvature and stiffness/smoothness.
      * Gamma (\gamma): Controls the image energy (magnetic pull towards the object's edges).
    * Click "Run Snake" to execute the C++ optimization. The final segmented object, along with its Area, Perimeter, and Chain Code, will be displayed.
-6. Technical Specifications
+## 6. Technical Specifications
 Snake Energy Functional
 The active contour minimizes the total energy functional. In this implementation, the optimization is handled via a greedy approach:
 E_snake = ∫ (α * E_cont + β * E_curv + γ * E_img) ds
@@ -138,13 +138,13 @@ Geometric Feature Extraction
 The area enclosed by the active contour is calculated rigorously using the Shoelace Formula over the final converged polynomial points:
 Area = 0.5 * | Σ (x_i * y_{i+1} - x_{i+1} * y_i) |
 
-7. File Descriptions
+## 7. File Descriptions
  * cv_custom_algorithms.h: The mathematical foundation. Contains from-scratch C++ implementations of Gaussian Blur, Sobel, Canny, Hough Transforms (Lines/Circles/Ellipses), and Distance Transforms.
  * cv_core.cpp: The primary engine and pybind11 wrapper. Houses the 2-phase Greedy Snake algorithm and handles data conversion between Python types and C++ STL/OpenCV structures.
  * views.py: The Django controllers. Responsible for handling HTTP requests, decoding JSON geometry, managing file I/O, and routing variables to the C++ engine.
  * app.js: The interactive frontend brain. Handles the Canvas API, mouse tracking, and features a crucial downsampleContour function that uses linear interpolation to compress raw freehand sketches into 60 equidistant nodes.
  * build_cv_core.py: A setuptools build script utilizing Pybind11Extension to locate OpenCV headers/libraries and compile the C++ source into a Python-importable module.
-8. Acknowledgments
+## 8. Acknowledgments
 Institution: Cairo University, Faculty of Engineering
 Department: Systems & Biomedical Engineering
 Course: Computer Vision (CV_02)
