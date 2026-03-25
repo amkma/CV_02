@@ -1,7 +1,7 @@
 # CV_02: Edge & Boundary Detection System
 
 **Team number:** 12  
-**Team members:** 
+**Team members:**
 * Ahmed Salah Geoshy Elshenawy  
 * Abdullah Mohammad Khalifa  
 * Mohamed Elsayed Attallah  
@@ -92,61 +92,86 @@ This project implements a complete "digital pipeline" from the browser to the CP
 │  └─────────────────────────────────────────────────────────┘    │
 └─────────────────────────────────────────────────────────────────┘
 
+---
+
 ## 4. Installation
-Prerequisites
- * Python 3.12+
- * CMake 3.15 or higher
- * OpenCV 4.x (C++ binaries installed and added to PATH)
- * A modern C++17 Compiler (e.g., MSVC v142/v143, GCC, or Clang)
-Installation Steps
- * Clone the repository to your local machine.
- * Set up the virtual environment & install Python dependencies:
+
+### Prerequisites
+* Python 3.12+
+* CMake 3.15 or higher
+* OpenCV 4.x (C++ binaries installed and added to `PATH`)
+* A modern C++17 Compiler (e.g., MSVC v142/v143, GCC, or Clang)
+
+### Installation Steps
+1. **Clone the repository** to your local machine.
+2. **Set up the virtual environment & install Python dependencies:**
+   ```bash
    python -m venv .venv
-source .venv/bin/activate  # On Windows: .venv\Scripts\activate
-pip install -r requirements.txt
-
- * Build the C++ Core Engine:
-   Ensure OpenCV_DIR is correctly mapped in your environment variables, then run the pybind11 build script:
+   source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+   pip install -r requirements.txt
+   ```
+3. **Build the C++ Core Engine:**
+   Ensure `OpenCV_DIR` is correctly mapped in your environment variables, then run the pybind11 build script:
+   ```bash
    python build_cv_core.py build_ext --inplace
-
-   (This will generate the cv_core.pyd or cv_core.so dynamic library).
- * Run the Django Server:
+   ```
+   *(This will generate the `cv_core.pyd` or `cv_core.so` dynamic library).*
+4. **Run the Django Server:**
+   ```bash
    python manage.py runserver
+   ```
+
+---
 
 ## 5. Usage Instructions
-Running a Detection Task
- * Upload an Image: Open the application in your browser (http://localhost:8000) and upload a target image using the left-hand panel.
- * Task 1: Hough Transform:
+
+### Running a Detection Task
+1. **Upload an Image:** Open the application in your browser (`http://localhost:8000`) and upload a target image using the left-hand panel.
+2. **Task 1: Hough Transform:**
    * Adjust the Canny thresholds and geometric voting parameters (rho, theta, min radius).
    * Click "Detect Shapes" to generate the 6-panel output showing isolated lines, circles, ellipses, and combined geometries.
- * Task 2: Active Contours (Snake):
-   * Click "✏️ Draw Contour".
+3. **Task 2: Active Contours (Snake):**
+   * Click **"✏️ Draw Contour"**.
    * Click and drag your mouse around the object of interest to form a rough boundary.
    * Adjust the energy weights:
-     * Alpha (\alpha): Controls the continuity and elasticity of the contour.
-     * Beta (\beta): Controls the curvature and stiffness/smoothness.
-     * Gamma (\gamma): Controls the image energy (magnetic pull towards the object's edges).
+     * **Alpha ($\alpha$)**: Controls the continuity and elasticity of the contour.
+     * **Beta ($\beta$)**: Controls the curvature and stiffness/smoothness.
+     * **Gamma ($\gamma$)**: Controls the image energy (magnetic pull towards the object's edges).
    * Click "Run Snake" to execute the C++ optimization. The final segmented object, along with its Area, Perimeter, and Chain Code, will be displayed.
-## 6. Technical Specifications
-Snake Energy Functional
-The active contour minimizes the total energy functional. In this implementation, the optimization is handled via a greedy approach:
-E_snake = ∫ (α * E_cont + β * E_curv + γ * E_img) ds
 
- * E_img is optimized via Gradient Descent against a Chamfer 2-pass distance transform, ensuring a wide capture range.
- * E_cont + E_curv is approximated efficiently using Laplacian Smoothing (averaging neighboring points with dynamic anchoring).
-Geometric Feature Extraction
-The area enclosed by the active contour is calculated rigorously using the Shoelace Formula over the final converged polynomial points:
-Area = 0.5 * | Σ (x_i * y_{i+1} - x_{i+1} * y_i) |
+---
+
+## 6. Technical Specifications
+
+### Snake Energy Functional
+The active contour minimizes the total energy functional. In this implementation, the optimization is handled via a greedy approach:
+
+$$E_{snake} = \int (\alpha E_{cont} + \beta E_{curv} + \gamma E_{img}) ds$$
+
+* **$E_{img}$** is optimized via Gradient Descent against a Chamfer 2-pass distance transform, ensuring a wide capture range.
+* **$E_{cont} + E_{curv}$** is approximated efficiently using Laplacian Smoothing (averaging neighboring points with dynamic anchoring).
+
+### Geometric Feature Extraction
+The area enclosed by the active contour is calculated rigorously using the **Shoelace Formula** over the final converged polynomial points:
+
+$$Area = 0.5 \times \left| \sum (x_i \cdot y_{i+1} - x_{i+1} \cdot y_i) \right|$$
+
+---
 
 ## 7. File Descriptions
- * cv_custom_algorithms.h: The mathematical foundation. Contains from-scratch C++ implementations of Gaussian Blur, Sobel, Canny, Hough Transforms (Lines/Circles/Ellipses), and Distance Transforms.
- * cv_core.cpp: The primary engine and pybind11 wrapper. Houses the 2-phase Greedy Snake algorithm and handles data conversion between Python types and C++ STL/OpenCV structures.
- * views.py: The Django controllers. Responsible for handling HTTP requests, decoding JSON geometry, managing file I/O, and routing variables to the C++ engine.
- * app.js: The interactive frontend brain. Handles the Canvas API, mouse tracking, and features a crucial downsampleContour function that uses linear interpolation to compress raw freehand sketches into 60 equidistant nodes.
- * build_cv_core.py: A setuptools build script utilizing Pybind11Extension to locate OpenCV headers/libraries and compile the C++ source into a Python-importable module.
-## 8. Acknowledgments
-Institution: Cairo University, Faculty of Engineering
-Department: Systems & Biomedical Engineering
-Course: Computer Vision (CV_02)
-(This project demonstrates low-level systems programming and high-level web integration for academic engineering purposes).
 
+* **`cv_custom_algorithms.h`**: The mathematical foundation. Contains from-scratch C++ implementations of Gaussian Blur, Sobel, Canny, Hough Transforms (Lines/Circles/Ellipses), and Distance Transforms.
+* **`cv_core.cpp`**: The primary engine and `pybind11` wrapper. Houses the 2-phase Greedy Snake algorithm and handles data conversion between Python types and C++ STL/OpenCV structures.
+* **`views.py`**: The Django controllers. Responsible for handling HTTP requests, decoding JSON geometry, managing file I/O, and routing variables to the C++ engine.
+* **`app.js`**: The interactive frontend brain. Handles the Canvas API, mouse tracking, and features a crucial `downsampleContour` function that uses linear interpolation to compress raw freehand sketches into 60 equidistant nodes.
+* **`build_cv_core.py`**: A `setuptools` build script utilizing `Pybind11Extension` to locate OpenCV headers/libraries and compile the C++ source into a Python-importable module.
+
+---
+
+## 8. Acknowledgments
+
+**Institution:** Cairo University, Faculty of Engineering  
+**Department:** Systems & Biomedical Engineering  
+**Course:** Computer Vision (CV_02)  
+
+*(This project demonstrates low-level systems programming and high-level web integration for academic engineering purposes).*
