@@ -91,6 +91,7 @@ This project implements a complete "digital pipeline" from the browser to the CP
 │  │  - Laplacian Smoothing (maintains spatial continuity)   │    │
 │  └─────────────────────────────────────────────────────────┘    │
 └─────────────────────────────────────────────────────────────────┘
+```
 
 ---
 
