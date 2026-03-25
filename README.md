@@ -1,7 +1,8 @@
 # CV_02: Edge & Boundary Detection System
 
 **Team number:** 12  
-**Team members:** * Ahmed Salah Geoshy Elshenawy  
+**Team members:** 
+* Ahmed Salah Geoshy Elshenawy  
 * Abdullah Mohammad Khalifa  
 * Mohamed Elsayed Attallah  
 
